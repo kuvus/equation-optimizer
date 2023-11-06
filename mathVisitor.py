@@ -98,12 +98,17 @@ class mathVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by mathParser#TrigTerm.
     def visitTrigTerm(self, ctx:mathParser.TrigTermContext):
-        return self.visitChildren(ctx)
+        fun = self.visit(ctx.trig())
+        exp = self.visit(ctx.expression())
+    
+        string = "{}({})".format(fun, exp)
+        self.string = string
+        return string
 
 
     # Visit a parse tree produced by mathParser#trig.
     def visitTrig(self, ctx:mathParser.TrigContext):
-        return self.visitChildren(ctx)
+        return ctx.getText()
 
 
 

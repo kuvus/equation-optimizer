@@ -17,13 +17,9 @@ class mathVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by mathParser#Parenthesis.
     def visitParenthesis(self, ctx:mathParser.ParenthesisContext):
-        # add parenthesis to string
         child = self.visit(ctx.expression())
 
-        if isinstance(child, float):
-            self.string = str(child)
-            return child
-        string = "(" + str(child) + ")"
+        string = str(child)
         self.string = string
         return string
 

@@ -12,16 +12,16 @@ class mathVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by mathParser#program.
     def visitProgram(self, ctx:mathParser.ProgramContext):
-        return self.visitChildren(ctx)
+        children = self.visitChildren(ctx)
+        self.string = str(children)
+        return children
 
 
     # Visit a parse tree produced by mathParser#Parenthesis.
     def visitParenthesis(self, ctx:mathParser.ParenthesisContext):
         child = self.visit(ctx.expression())
-
-        string = str(child)
-        self.string = string
-        return string
+        self.string = str(child)
+        return child
 
 
     # Visit a parse tree produced by mathParser#Multiplication.
@@ -59,6 +59,7 @@ class mathVisitor(ParseTreeVisitor):
         term2 = self.visit(ctx.expression(1))
 
         operator = ctx.op.text
+
 
         if isinstance(term1, float) and isinstance(term2, float):
             if operator == '+':

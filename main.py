@@ -16,7 +16,9 @@ def main():
     visitor = Visitor()
     visitor.visit(tree)
 
-    print(visitor.string.replace('.', ','))
+    out = str(visitor.out).replace('.', ',')
+    print('Optimized function:')
+    print(out)
 
 if __name__ == '__main__':
     main()

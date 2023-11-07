@@ -1,3 +1,5 @@
+from Term import Type, Expression
+
 # Generated from math.g4 by ANTLR 4.13.1
 from antlr4 import *
 if "." in __name__:
@@ -9,72 +11,129 @@ else:
 
 class mathVisitor(ParseTreeVisitor):
     string = ""
+    out = None
 
     # Visit a parse tree produced by mathParser#program.
     def visitProgram(self, ctx:mathParser.ProgramContext):
         children = self.visitChildren(ctx)
         self.string = str(children)
+        self.out = Expression([children], Type.START)
         return children
 
 
     # Visit a parse tree produced by mathParser#Parenthesis.
     def visitParenthesis(self, ctx:mathParser.ParenthesisContext):
         child = self.visit(ctx.expression())
-        self.string = str(child)
-        return child
+        if len(child.children) == 1:
+            # print('b', child)
+            return Expression(child.children, child.dtype)
+
+        return Expression([child], Type.PAR)
 
 
     # Visit a parse tree produced by mathParser#Multiplication.
     def visitMultiplication(self, ctx:mathParser.MultiplicationContext):
-        term1 = self.visit(ctx.expression(0))
-        term2 = self.visit(ctx.expression(1))
+        term1: Expression = self.visit(ctx.expression(0))
+        term2: Expression = self.visit(ctx.expression(1))
 
         operator = ctx.op.text
 
-        # if term1 and term2 are both numbers, multiply them
-        if isinstance(term1, float) and isinstance(term2, float):
+        if term1.dtype == Type.NUM and term2.dtype == Type.NUM:
             if operator == '*':
-                self.string = str(term1 * term2)
-                return term1 * term2
+                return Expression([term1.children[0] * term2.children[0]], Type.NUM)
             else:
-                if term2 <= 0.001:
-                    self.string = str(term1)
-                    return term1
-
-                self.string = str(term1 / term2)
-                return term1 / term2
+                # print(term2)
+                if term2.children[0] <= 0.001:
+                    return Expression([term1.children[0]], Type.NUM)
+                return Expression([term1.children[0] / term2.children[0]], Type.NUM)
 
 
         if operator == '*':
-            self.string = "({} * {})".format(term1, term2)
-            return "({} * {})".format(term1, term2)
+            return Expression([term1, term2], Type.MUL)
         else:
-            self.string = "({} / {})".format(term1, term2)
-            return "({} / {})".format(term1, term2)
+            return Expression([term1, term2], Type.DIV)
 
 
     # Visit a parse tree produced by mathParser#Addition.
     def visitAddition(self, ctx:mathParser.AdditionContext):
-        term1 = self.visit(ctx.expression(0))
-        term2 = self.visit(ctx.expression(1))
+        term1: Expression = self.visit(ctx.expression(0))
+        term2: Expression = self.visit(ctx.expression(1))
 
         operator = ctx.op.text
 
-
-        if isinstance(term1, float) and isinstance(term2, float):
+        if term1.dtype == Type.NUM and term2.dtype == Type.NUM:
             if operator == '+':
-                self.string = str(term1 + term2)
-                return term1 + term2
+                # print(term1.children[0], term2.children[0])
+                return Expression([term1.children[0] + term2.children[0]], Type.NUM)
             else:
-                self.string = str(term1 - term2)
-                return term1 - term2
+                return Expression([term1.children[0] - term2.children[0]], Type.NUM)
+
 
         if operator == '+':
-            self.string = "({} + {})".format(term1, term2)
-            return "({} + {})".format(term1, term2)
+            # print('b', term1, term2)
+            if term1.dtype == Type.NUM and term2.dtype == Type.PAR:
+                x = term1.children[0]
+                yy = term2.children[0]
+
+                if hasattr(x, 'children'):
+                    x = x.children[0]
+                
+                if yy.children[0].dtype == Type.NUM:
+                    if yy.dtype == Type.ADD:
+                        res = x + yy.children[0].children[0]
+                        return Expression([Expression([res], Type.NUM), yy.children[1]], Type.ADD)
+                    elif yy.dtype == Type.SUB:
+                        res = x - yy.children[0].children[0]
+                        if res < 0:
+                            return Expression([yy.children[1], Expression([-res], Type.NUM)], Type.SUB)
+                        else:
+                            return Expression([Expression([res], Type.NUM), yy.children[1]], Type.ADD)
+                        
+                elif yy.children[1].dtype == Type.NUM:
+                    if yy.dtype == Type.ADD:
+                        res = x + yy.children[1].children[0]
+                        return Expression([Expression([res], Type.NUM), yy.children[0]], Type.ADD)
+                    elif yy.dtype == Type.SUB:
+                        res = x - yy.children[1].children[0]
+                        if res < 0:
+                            return Expression([yy.children[0], Expression([-res], Type.NUM)], Type.SUB)
+                        else:
+                            return Expression([Expression([res], Type.NUM), yy.children[0]], Type.ADD)
+
+    
+            elif term1.dtype == Type.PAR and term2.dtype == Type.NUM:
+                # print('b', term2.children)
+                x = term2.children[0]
+                yy = term1.children[0]
+
+                if hasattr(x, 'children'):
+                    x = x.children[0]
+                
+                if yy.children[0].dtype == Type.NUM:
+                    if yy.dtype == Type.ADD:
+                        res = x + yy.children[0].children[0]
+                        return Expression([Expression([res], Type.NUM), yy.children[1]], Type.ADD)
+                    elif yy.dtype == Type.SUB:
+                        res = x - yy.children[0].children[0]
+                        if res < 0:
+                            return Expression([yy.children[1], Expression([-res], Type.NUM)], Type.SUB)
+                        else:
+                            return Expression([Expression([res], Type.NUM), yy.children[1]], Type.ADD)
+                        
+                elif yy.children[1].dtype == Type.NUM:
+                    if yy.dtype == Type.ADD:
+                        res = x + yy.children[1].children[0]
+                        return Expression([Expression([res], Type.NUM), yy.children[0]], Type.ADD)
+                    elif yy.dtype == Type.SUB:
+                        res = x - yy.children[1].children[0]
+                        if res < 0:
+                            return Expression([yy.children[0], Expression([-res], Type.NUM)], Type.SUB)
+                        else:
+                            return Expression([Expression([res], Type.NUM), yy.children[0]], Type.ADD)
+
+            return Expression([term1, term2], Type.ADD)
         else:
-            self.string = "({} - {})".format(term1, term2)
-            return "({} - {})".format(term1, term2)
+            return Expression([term1, term2], Type.SUB)
 
 
     # Visit a parse tree produced by mathParser#TermExpression.
@@ -84,27 +143,28 @@ class mathVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by mathParser#UnaryMinus.
     def visitUnaryMinus(self, ctx:mathParser.UnaryMinusContext):
-        return float(ctx.getText().replace(',', '.'))
+        num = float(ctx.getText().replace(',', '.'))
+        return Expression([num], Type.NUM)
 
 
     # Visit a parse tree produced by mathParser#NumberTerm.
     def visitNumberTerm(self, ctx:mathParser.NumberTermContext):
-        return float(ctx.getText().replace(',', '.'))
+        num = float(ctx.getText().replace(',', '.'))
+        return Expression([num], Type.NUM)
 
 
     # Visit a parse tree produced by mathParser#VariableTerm.
     def visitVariableTerm(self, ctx:mathParser.VariableTermContext):
-        return ctx.getText()
+        var = ctx.getText()
+        return Expression([var], Type.VAR)
 
 
     # Visit a parse tree produced by mathParser#TrigTerm.
     def visitTrigTerm(self, ctx:mathParser.TrigTermContext):
         fun = self.visit(ctx.trig())
         exp = self.visit(ctx.expression())
-    
-        string = "{}({})".format(fun, exp)
-        self.string = string
-        return string
+
+        return Expression([exp], Type.SIN if fun == 'sin' else Type.COS)
 
 
     # Visit a parse tree produced by mathParser#trig.

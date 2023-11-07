@@ -1,4 +1,5 @@
 # Equation optimizer
+Tool for optimizing outputs from tinyGP.
 ## Usage
 ### Install dependencies
 ```bash

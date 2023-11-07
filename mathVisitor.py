@@ -38,6 +38,9 @@ class mathVisitor(ParseTreeVisitor):
 
         operator = ctx.op.text
 
+        if term1.dtype == Type.NUM and term1.children[0] == 0:
+            return Expression([0], Type.NUM)
+
         if term1.dtype == Type.NUM and term2.dtype == Type.NUM:
             if operator == '*':
                 return Expression([term1.children[0] * term2.children[0]], Type.NUM)

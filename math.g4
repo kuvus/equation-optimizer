@@ -17,7 +17,7 @@ term
     ;
 
 VAR: [A-Z][0-9]+;
-NUMBER: [0-9]+ ',' [0-9]+;
+NUMBER: [0-9]+ (','|'.') [0-9]+;
 trig: 'sin' | 'cos';
 
 WHITESPACE : [ \t]+ -> skip;

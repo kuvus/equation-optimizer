@@ -44,7 +44,6 @@ class mathVisitor(ParseTreeVisitor):
             if operator == '*':
                 return Expression([term1.children[0] * term2.children[0]], Type.NUM)
             else:
-                # print(term2)
                 if term2.children[0] <= 0.001:
                     return Expression([term1.children[0]], Type.NUM)
                 return Expression([term1.children[0] / term2.children[0]], Type.NUM)
@@ -87,9 +86,15 @@ class mathVisitor(ParseTreeVisitor):
                 if yy.children[0].dtype == Type.NUM:
                     res = x + yy.children[0].children[0]
                     if res < 0:
-                        return Expression([yy.children[1], Expression([-res], Type.NUM)], Type.SUB)
+                        if yy.dtype == Type.ADD:
+                            return Expression([yy.children[1], Expression([-res], Type.NUM)], Type.SUB)
+                        else:
+                            return Expression([Expression([res], Type.NUM), yy.children[1]], Type.SUB)
                     else:
-                        return Expression([Expression([res], Type.NUM), yy.children[1]], Type.ADD)
+                        if yy.dtype == Type.ADD:
+                            return Expression([Expression([res], Type.NUM), yy.children[1]], Type.ADD)
+                        elif yy.dtype == Type.SUB:
+                            return Expression([Expression([res], Type.NUM), yy.children[1]], Type.SUB)
                         
                 elif yy.children[1].dtype == Type.NUM:
                     if yy.dtype == Type.ADD:
@@ -139,12 +144,20 @@ class mathVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by mathParser#UnaryMinus.
     def visitUnaryMinus(self, ctx:mathParser.UnaryMinusContext):
-        text = ctx.getText()
-        if text.isnumeric():
-            num = float(ctx.getText().replace(',', '.'))
+        def is_num(string):
+            try:
+                float(string)
+                return True
+            except ValueError:
+                return False
+
+        text = ctx.getText().replace(',', '.')
+        if is_num(text):
+            num = float(text)
             return Expression([num], Type.NUM)
         else:
-            raise Exception('Unary minus not supported for terms other than numbers')
+            return Expression([Expression([Expression([0], Type.NUM), self.visit(ctx.expression())], Type.SUB)], Type.PAR)
+            # raise Exception('Unary minus not supported for terms other than numbers')
 
 
     # Visit a parse tree produced by mathParser#NumberTerm.

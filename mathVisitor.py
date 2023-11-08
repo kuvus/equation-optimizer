@@ -25,7 +25,6 @@ class mathVisitor(ParseTreeVisitor):
     def visitParenthesis(self, ctx:mathParser.ParenthesisContext):
         child = self.visit(ctx.expression())
         if len(child.children) == 1:
-            # print('b', child)
             return Expression(child.children, child.dtype)
 
         return Expression([child], Type.PAR)
@@ -66,31 +65,31 @@ class mathVisitor(ParseTreeVisitor):
 
         if term1.dtype == Type.NUM and term2.dtype == Type.NUM:
             if operator == '+':
-                # print(term1.children[0], term2.children[0])
                 return Expression([term1.children[0] + term2.children[0]], Type.NUM)
             else:
                 return Expression([term1.children[0] - term2.children[0]], Type.NUM)
 
 
         if operator == '+':
-            # print('b', term1, term2)
-            if term1.dtype == Type.NUM and term2.dtype == Type.PAR:
+            # 2 + (x + 1)
+            if (term1.dtype == Type.NUM and term2.dtype == Type.PAR) or (term1.dtype == Type.PAR and term2.dtype == Type.NUM):
                 x = term1.children[0]
                 yy = term2.children[0]
 
+                # (x + 1) + 2
+                if term1.dtype == Type.PAR and term2.dtype == Type.NUM:
+                    x = term2.children[0]
+                    yy = term1.children[0]
+
                 if hasattr(x, 'children'):
                     x = x.children[0]
-                
+
                 if yy.children[0].dtype == Type.NUM:
-                    if yy.dtype == Type.ADD:
-                        res = x + yy.children[0].children[0]
+                    res = x + yy.children[0].children[0]
+                    if res < 0:
+                        return Expression([yy.children[1], Expression([-res], Type.NUM)], Type.SUB)
+                    else:
                         return Expression([Expression([res], Type.NUM), yy.children[1]], Type.ADD)
-                    elif yy.dtype == Type.SUB:
-                        res = x - yy.children[0].children[0]
-                        if res < 0:
-                            return Expression([yy.children[1], Expression([-res], Type.NUM)], Type.SUB)
-                        else:
-                            return Expression([Expression([res], Type.NUM), yy.children[1]], Type.ADD)
                         
                 elif yy.children[1].dtype == Type.NUM:
                     if yy.dtype == Type.ADD:
@@ -102,40 +101,34 @@ class mathVisitor(ParseTreeVisitor):
                             return Expression([yy.children[0], Expression([-res], Type.NUM)], Type.SUB)
                         else:
                             return Expression([Expression([res], Type.NUM), yy.children[0]], Type.ADD)
-
-    
-            elif term1.dtype == Type.PAR and term2.dtype == Type.NUM:
-                # print('b', term2.children)
+            return Expression([term1, term2], Type.ADD)
+        else:
+            if term1.dtype == Type.PAR and term2.dtype == Type.NUM:
                 x = term2.children[0]
                 yy = term1.children[0]
 
                 if hasattr(x, 'children'):
                     x = x.children[0]
-                
+
                 if yy.children[0].dtype == Type.NUM:
                     if yy.dtype == Type.ADD:
-                        res = x + yy.children[0].children[0]
-                        return Expression([Expression([res], Type.NUM), yy.children[1]], Type.ADD)
-                    elif yy.dtype == Type.SUB:
-                        res = x - yy.children[0].children[0]
+                        res = yy.children[0].children[0] - x
                         if res < 0:
                             return Expression([yy.children[1], Expression([-res], Type.NUM)], Type.SUB)
                         else:
                             return Expression([Expression([res], Type.NUM), yy.children[1]], Type.ADD)
-                        
+                    elif yy.dtype == Type.SUB:
+                        res = yy.children[0].children[0] - x
+                        return Expression([Expression([res], Type.NUM), yy.children[1]], Type.SUB)
+                    
                 elif yy.children[1].dtype == Type.NUM:
                     if yy.dtype == Type.ADD:
-                        res = x + yy.children[1].children[0]
+                        res = yy.children[1].children[0] - x
                         return Expression([Expression([res], Type.NUM), yy.children[0]], Type.ADD)
                     elif yy.dtype == Type.SUB:
-                        res = x - yy.children[1].children[0]
-                        if res < 0:
-                            return Expression([yy.children[0], Expression([-res], Type.NUM)], Type.SUB)
-                        else:
-                            return Expression([Expression([res], Type.NUM), yy.children[0]], Type.ADD)
+                        res = yy.children[1].children[0] + x
+                        return Expression([yy.children[0], Expression([res], Type.NUM)], Type.SUB)
 
-            return Expression([term1, term2], Type.ADD)
-        else:
             return Expression([term1, term2], Type.SUB)
 
 
@@ -146,8 +139,12 @@ class mathVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by mathParser#UnaryMinus.
     def visitUnaryMinus(self, ctx:mathParser.UnaryMinusContext):
-        num = float(ctx.getText().replace(',', '.'))
-        return Expression([num], Type.NUM)
+        text = ctx.getText()
+        if text.isnumeric():
+            num = float(ctx.getText().replace(',', '.'))
+            return Expression([num], Type.NUM)
+        else:
+            raise Exception('Unary minus not supported for terms other than numbers')
 
 
     # Visit a parse tree produced by mathParser#NumberTerm.

@@ -50,6 +50,11 @@ class mathVisitor(ParseTreeVisitor):
 
 
         if operator == '*':
+            # If one term is 0, return 0
+            if term1.dtype == Type.NUM and term1.children[0] == 0:
+                return Expression([0], Type.NUM)
+            elif term2.dtype == Type.NUM and term2.children[0] == 0:
+                return Expression([0], Type.NUM)
             return Expression([term1, term2], Type.MUL)
         else:
             return Expression([term1, term2], Type.DIV)
@@ -70,6 +75,11 @@ class mathVisitor(ParseTreeVisitor):
 
 
         if operator == '+':
+            # If one term is 0, return the other
+            if term1.dtype == Type.NUM and term1.children[0] == 0:
+                return Expression([term2], Type.PAR)
+            elif term2.dtype == Type.NUM and term2.children[0] == 0:
+                return Expression([term1], Type.PAR)
             # 2 + (x + 1)
             if (term1.dtype == Type.NUM and term2.dtype == Type.PAR) or (term1.dtype == Type.PAR and term2.dtype == Type.NUM):
                 x = term1.children[0]
@@ -96,7 +106,7 @@ class mathVisitor(ParseTreeVisitor):
                         elif yy.dtype == Type.SUB:
                             return Expression([Expression([res], Type.NUM), yy.children[1]], Type.SUB)
                         
-                elif yy.children[1].dtype == Type.NUM:
+                elif len(yy.children) > 1 and yy.children[1].dtype == Type.NUM:
                     if yy.dtype == Type.ADD:
                         res = x + yy.children[1].children[0]
                         return Expression([Expression([res], Type.NUM), yy.children[0]], Type.ADD)
@@ -126,7 +136,7 @@ class mathVisitor(ParseTreeVisitor):
                         res = yy.children[0].children[0] - x
                         return Expression([Expression([res], Type.NUM), yy.children[1]], Type.SUB)
                     
-                elif yy.children[1].dtype == Type.NUM:
+                elif len(yy.children) > 1 and yy.children[1].dtype == Type.NUM:
                     if yy.dtype == Type.ADD:
                         res = yy.children[1].children[0] - x
                         return Expression([Expression([res], Type.NUM), yy.children[0]], Type.ADD)
